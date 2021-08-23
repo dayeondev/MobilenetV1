@@ -44,7 +44,7 @@ flowers_transform = T.Compose([T.Resize((img_size, img_size)),
 classes = ('daisy', 'dandelion', 'roses', 'sunflowers','tulips')
 
 DATA_PATH_TRAINING_LIST = glob('./../data/flower_split/train/*/*.jpg')
-DATA_PATH_TESTING_LIST = glob('./../data/flower_split/test/*/*.jpg')
+DATA_PATH_VALID_LIST = glob('./../data/flower_split/val/*/*.jpg')
 batch_size = 32
 train_loader = DataLoader(
     datasets.FlowersDataset(
@@ -57,12 +57,12 @@ train_loader = DataLoader(
 )
 valid_loader = DataLoader(
     datasets.FlowersDataset(
-        DATA_PATH_TESTING_LIST, 
+        DATA_PATH_VALID_LIST, 
         classes,
         transform=flowers_transform
     ),
     batch_size=batch_size,
-    shuffle = True
+    shuffle = False
 )
 
 
@@ -92,12 +92,32 @@ loss_func = losses.crossEntropyLoss()
 opt = optim.Adam(model.parameters(), lr=0.01)
 
 lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.1, patience=10)
-
+epoch = 200
 #%%#########
 # training #
 ############
-optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-criterion = nn.CrossEntropyLoss()
+
+def show_loss(loss_hist, epoch):
+    
+    plt.title('Train Loss')
+    plt.plot(range(1, epoch+1), loss_hist, label='train')
+    # plt.plot(range(1, num_epochs+1), loss_hist['val'], label='val')
+    plt.ylabel('loss avg')
+    plt.xlabel('epoch')
+    plt.legend()
+    plt.show()
+
+def show_accuracy(train_accu_hist, epoch):
+    plt.title('Train Accuracy')
+    plt.plot(range(1, epoch+1), train_accu_hist['daisy'], label='daisy')
+    plt.plot(range(1, epoch+1), train_accu_hist['dandelion'], label='dandelion')
+    plt.plot(range(1, epoch+1), train_accu_hist['roses'], label='roses')
+    plt.plot(range(1, epoch+1), train_accu_hist['sunflowers'], label='sunflowers')
+    plt.plot(range(1, epoch+1), train_accu_hist['tulips'], label='tulips')
+    plt.xlabel('epoch')
+    plt.ylabel('accuracy')
+    plt.legend()
+    plt.show()
 
 def show(imgs):
     if not isinstance(imgs, list):
@@ -114,24 +134,28 @@ def show_images(images):
     plt.imshow(torchvision.utils.make_grid(images, normalize=True).permute(1, 2, 0).cpu())
     plt.show()
 
-def check_accuracy(model, images, labels, history):
+def check_accuracy(model, history, data_loader):
     correct_pred = {classname: 0 for classname in classes}
     total_pred = {classname: 0 for classname in classes}
 
     with torch.no_grad():
-        outputs = model(images)
-        # print(outputs)
-        _, predictions = torch.max(outputs, 1)
-        # Check correct prediction
-        for label, prediction in zip(labels, predictions):
-            # print("label is {}, prediction is {}".format(label, prediction))
-            if label == prediction:
-                correct_pred[classes[label]] += 1
-            total_pred[classes[label]] += 1
+        for data in data_loader:
+            images, labels = data[0].to(device), data[1].to(device)
+            outputs = model(images)
+            _, predictions = torch.max(outputs, 1)
+            # Check correct prediction
+            for label, prediction in zip(labels, predictions):
+                if label == prediction:
+                    correct_pred[classes[label]] += 1
+                total_pred[classes[label]] += 1
 
     for classname, correct_count in correct_pred.items():
         accuracy = 100 * float(correct_count) / total_pred[classname]
         history[classname].append(accuracy)
+
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+criterion = nn.CrossEntropyLoss()
 
 def training(model, epoch):
     
@@ -171,38 +195,27 @@ def training(model, epoch):
         print("epoch: {:2d}, {:.2f} ".format(epoch,  loss_sum/loss_count))
         check_accuracy(model, train_accuracy_history, train_loader)
         
-
+        if epoch % 10 == 0:
+            show_loss(loss_history['train'], len(loss_history['train']))
+            show_accuracy(train_accuracy_history, len(loss_history['train']))
+        if epoch == 200:
+            pass
+        
 
         torch.save(model.state_dict(), PATH)
-    return model, loss_history, test_accuracy_history
+    return model, loss_history, train_accuracy_history
 
 # %%
-epoch=10
+
 _, loss_hist, train_accu_hist = training(model, epoch)
 # %%
 # train-val progress
 # num_epochs = params_train['num_epochs']
-num_epochs = len(loss_hist['train'])
+# num_epochs = epoch
 
+#%%
 # plot loss progress
-plt.title('Train Loss')
-plt.plot(range(1, num_epochs+1), loss_hist['train'], label='train')
-# plt.plot(range(1, num_epochs+1), loss_hist['val'], label='val')
-plt.ylabel('loss avg')
-plt.xlabel('epoch')
-plt.legend()
-plt.show()
 
-plt.title('Train Accuracy')
-plt.plot(range(1, num_epochs+1), train_accu_hist['daisy'], label='daisy')
-plt.plot(range(1, num_epochs+1), train_accu_hist['dandelion'], label='dandelion')
-plt.plot(range(1, num_epochs+1), train_accu_hist['roses'], label='roses')
-plt.plot(range(1, num_epochs+1), train_accu_hist['sunflowers'], label='sunflowers')
-plt.plot(range(1, num_epochs+1), train_accu_hist['tulips'], label='tulips')
-plt.xlabel('epoch')
-plt.ylabel('accuracy')
-plt.legend()
-plt.show()
 
 # plt.title('Valid Accuracy')
 # plt.plot(range(1, num_epochs+1), valid_accu_test['daisy'], label='daisy')
