@@ -17,7 +17,7 @@ import copy
 import os
 import PIL
 import numpy as np
-import pil import Image
+from PIL import Image
 import time
 import matplotlib.pyplot as plt
 
@@ -276,7 +276,7 @@ print('GroundTruth: ', ' '.join('%5s' % classes[labels[j]] for j in range(8)))
 
 
 # %%
-model = networks.mbilenet(1, 5).to(device)
+model = networks.mobilenet(alpha=1, num_classes=5).to(device)
 model.load_state_dict(torch.load(PATH))
 # %%
 outputs = model(images)
