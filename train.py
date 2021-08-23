@@ -263,7 +263,7 @@ def imshow(img):
     plt.imshow(np.transpose(npimg, (1, 2, 0)))
     plt.show()
     
-# 이미지를 출력합니다.
+# show images
 imshow(torchvision.utils.make_grid(images_and_labels[0]))
 print('GroundTruth: ', ' '.join('%5s' % classes[labels[j]] for j in range(8)))
 # print('[GroundTruth]')
