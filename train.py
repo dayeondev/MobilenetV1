@@ -21,16 +21,17 @@ from PIL import Image
 import time
 import matplotlib.pyplot as plt
 from torch import nn
+import torchvision.transforms.functional as F
 
 PATH = './flower_mobilenet.pth'
 
 #%%##########
 # transform #
 #############
-img_size = 32
+img_size = 64
 stats = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
 flowers_transform = T.Compose([T.Resize((img_size, img_size)),
-                       T.RandomCrop(32, padding=4, padding_mode='reflect'),
+                       T.RandomCrop(img_size, padding=4, padding_mode='reflect'),
                        T.RandomHorizontalFlip(),
                        T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
                        T.ToTensor(),
@@ -44,7 +45,7 @@ classes = ('daisy', 'dandelion', 'roses', 'sunflowers','tulips')
 
 DATA_PATH_TRAINING_LIST = glob('./../data/flower_split/train/*/*.jpg')
 DATA_PATH_TESTING_LIST = glob('./../data/flower_split/test/*/*.jpg')
-batch_size = 16
+batch_size = 32
 train_loader = DataLoader(
     datasets.FlowersDataset(
         DATA_PATH_TRAINING_LIST, 
@@ -98,20 +99,35 @@ lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.1, patience=10)
 optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 criterion = nn.CrossEntropyLoss()
 
-def show_accuracy(model, history, data_loader):
+def show(imgs):
+    if not isinstance(imgs, list):
+        imgs = [imgs]
+    fix, axs = plt.subplots(ncols=len(imgs), squeeze=False)
+    for i, img in enumerate(imgs):
+        img = img.detach()
+        img = F.to_pil_image(img)
+        axs[0, i].imshow(np.asarray(img))
+        axs[0, i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
+    
+def show_images(images):
+    # show(torchvision.utils.make_grid(images))
+    plt.imshow(torchvision.utils.make_grid(images, normalize=True).permute(1, 2, 0).cpu())
+    plt.show()
+
+def check_accuracy(model, images, labels, history):
     correct_pred = {classname: 0 for classname in classes}
     total_pred = {classname: 0 for classname in classes}
 
     with torch.no_grad():
-        for data in data_loader:
-            images, labels = data[0].to(device), data[1].to(device)
-            outputs = model(images)
-            _, predictions = torch.max(outputs, 1)
-            # Check correct prediction
-            for label, prediction in zip(labels, predictions):
-                if label == prediction:
-                    correct_pred[classes[label]] += 1
-                total_pred[classes[label]] += 1
+        outputs = model(images)
+        # print(outputs)
+        _, predictions = torch.max(outputs, 1)
+        # Check correct prediction
+        for label, prediction in zip(labels, predictions):
+            # print("label is {}, prediction is {}".format(label, prediction))
+            if label == prediction:
+                correct_pred[classes[label]] += 1
+            total_pred[classes[label]] += 1
 
     for classname, correct_count in correct_pred.items():
         accuracy = 100 * float(correct_count) / total_pred[classname]
@@ -120,15 +136,18 @@ def show_accuracy(model, history, data_loader):
 def training(model, epoch):
     
     loss_history = {'train': []}
-    test_accuracy_history = {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []}
-    valid_accuracy_history = {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []}
+    train_accuracy_history = {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []}
+    # valid_accuracy_history = {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []}
 
     for epoch in range(epoch):
         loss_sum = 0
         loss_count = 0
         for i, data in enumerate(train_loader, 0):
+            # print(loss_count)
             
             inputs, labels = data[0].to(device), data[1].to(device)
+            
+            
 
             optimizer.zero_grad()
 
@@ -140,21 +159,26 @@ def training(model, epoch):
             # print(loss.item())
             loss_sum += loss.item()
             loss_count += 1
-            # loss_history['train'].append(loss.item())
+            
+            # if i==1:
+            #     show_images(inputs)
+            #     print(*labels, sep='\n')
+            #     print(*model(inputs))
+            # check_accuracy(model, inputs, labels, test_accuracy_history)
+            
 
         loss_history['train'].append(loss_sum/loss_count)
-        print("epoch: {:3d}, {:.2f} ".format(epoch,  loss_sum/loss_count))
-        show_accuracy(model, test_accuracy_history, train_loader)
-        show_accuracy(model, valid_accuracy_history, valid_loader)
+        print("epoch: {:2d}, {:.2f} ".format(epoch,  loss_sum/loss_count))
+        check_accuracy(model, train_accuracy_history, train_loader)
         
 
 
         torch.save(model.state_dict(), PATH)
-    return model, loss_history, test_accuracy_history, valid_accuracy_history
+    return model, loss_history, test_accuracy_history
 
 # %%
-epoch=100
-_, loss_hist, train_accu_hist, valid_accu_test = training(model, epoch)
+epoch=10
+_, loss_hist, train_accu_hist = training(model, epoch)
 # %%
 # train-val progress
 # num_epochs = params_train['num_epochs']
@@ -180,16 +204,16 @@ plt.ylabel('accuracy')
 plt.legend()
 plt.show()
 
-plt.title('Valid Accuracy')
-plt.plot(range(1, num_epochs+1), valid_accu_test['daisy'], label='daisy')
-plt.plot(range(1, num_epochs+1), valid_accu_test['dandelion'], label='dandelion')
-plt.plot(range(1, num_epochs+1), valid_accu_test['roses'], label='roses')
-plt.plot(range(1, num_epochs+1), valid_accu_test['sunflowers'], label='sunflowers')
-plt.plot(range(1, num_epochs+1), valid_accu_test['tulips'], label='tulips')
-plt.xlabel('epoch')
-plt.ylabel('accuracy')
-plt.legend()
-plt.show()
+# plt.title('Valid Accuracy')
+# plt.plot(range(1, num_epochs+1), valid_accu_test['daisy'], label='daisy')
+# plt.plot(range(1, num_epochs+1), valid_accu_test['dandelion'], label='dandelion')
+# plt.plot(range(1, num_epochs+1), valid_accu_test['roses'], label='roses')
+# plt.plot(range(1, num_epochs+1), valid_accu_test['sunflowers'], label='sunflowers')
+# plt.plot(range(1, num_epochs+1), valid_accu_test['tulips'], label='tulips')
+# plt.xlabel('epoch')
+# plt.ylabel('accuracy')
+# plt.legend()
+# plt.show()
 
 #%%############
 # show result #
