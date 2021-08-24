@@ -22,6 +22,8 @@ import time
 import matplotlib.pyplot as plt
 from torch import nn
 import torchvision.transforms.functional as F
+from tools.general import plot_utils, pil_utils
+
 
 PATH = './flower_mobilenet.pth'
 
@@ -82,14 +84,15 @@ summary(model, (3, 224, 224), device=device.type)
 #%%############
 # define loss #
 ###############
-loss_func = losses.crossEntropyLoss()
+criterion = losses.crossEntropyLoss()
 
 
 
 #%%###############################
 # define optimizer and scheduler #
 ##################################
-opt = optim.Adam(model.parameters(), lr=0.01)
+learning_rate = 0.05
+opt = optim.Adam(model.parameters(), lr=learning_rate)
 
 lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.1, patience=10)
 epoch = 200
@@ -97,42 +100,7 @@ epoch = 200
 # training #
 ############
 
-def show_loss(loss_hist, epoch):
-    
-    plt.title('Train Loss')
-    plt.plot(range(1, epoch+1), loss_hist, label='train')
-    # plt.plot(range(1, num_epochs+1), loss_hist['val'], label='val')
-    plt.ylabel('loss avg')
-    plt.xlabel('epoch')
-    plt.legend()
-    plt.show()
 
-def show_accuracy(train_accu_hist, epoch):
-    plt.title('Train Accuracy')
-    plt.plot(range(1, epoch+1), train_accu_hist['daisy'], label='daisy')
-    plt.plot(range(1, epoch+1), train_accu_hist['dandelion'], label='dandelion')
-    plt.plot(range(1, epoch+1), train_accu_hist['roses'], label='roses')
-    plt.plot(range(1, epoch+1), train_accu_hist['sunflowers'], label='sunflowers')
-    plt.plot(range(1, epoch+1), train_accu_hist['tulips'], label='tulips')
-    plt.xlabel('epoch')
-    plt.ylabel('accuracy')
-    plt.legend()
-    plt.show()
-
-def show(imgs):
-    if not isinstance(imgs, list):
-        imgs = [imgs]
-    fix, axs = plt.subplots(ncols=len(imgs), squeeze=False)
-    for i, img in enumerate(imgs):
-        img = img.detach()
-        img = F.to_pil_image(img)
-        axs[0, i].imshow(np.asarray(img))
-        axs[0, i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
-    
-def show_images(images):
-    # show(torchvision.utils.make_grid(images))
-    plt.imshow(torchvision.utils.make_grid(images, normalize=True).permute(1, 2, 0).cpu())
-    plt.show()
 
 def check_accuracy(model, history, data_loader):
     correct_pred = {classname: 0 for classname in classes}
@@ -155,7 +123,7 @@ def check_accuracy(model, history, data_loader):
 
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-criterion = nn.CrossEntropyLoss()
+
 
 def training(model, epoch):
     
@@ -170,8 +138,6 @@ def training(model, epoch):
             # print(loss_count)
             
             inputs, labels = data[0].to(device), data[1].to(device)
-            
-            
 
             optimizer.zero_grad()
 
@@ -185,7 +151,7 @@ def training(model, epoch):
             loss_count += 1
             
             # if i==1:
-            #     show_images(inputs)
+            #     pil_utils.show_images(inputs)
             #     print(*labels, sep='\n')
             #     print(*model(inputs))
             # check_accuracy(model, inputs, labels, test_accuracy_history)
@@ -196,8 +162,8 @@ def training(model, epoch):
         check_accuracy(model, train_accuracy_history, train_loader)
         
         if epoch % 10 == 0:
-            show_loss(loss_history['train'], len(loss_history['train']))
-            show_accuracy(train_accuracy_history, len(loss_history['train']))
+            plot_utils.show_loss(loss_history['train'], len(loss_history['train']))
+            plot_utils.show_accuracy(train_accuracy_history, len(loss_history['train']), True)
         if epoch == 200:
             pass
         
@@ -208,25 +174,6 @@ def training(model, epoch):
 # %%
 
 _, loss_hist, train_accu_hist = training(model, epoch)
-# %%
-# train-val progress
-# num_epochs = params_train['num_epochs']
-# num_epochs = epoch
-
-#%%
-# plot loss progress
-
-
-# plt.title('Valid Accuracy')
-# plt.plot(range(1, num_epochs+1), valid_accu_test['daisy'], label='daisy')
-# plt.plot(range(1, num_epochs+1), valid_accu_test['dandelion'], label='dandelion')
-# plt.plot(range(1, num_epochs+1), valid_accu_test['roses'], label='roses')
-# plt.plot(range(1, num_epochs+1), valid_accu_test['sunflowers'], label='sunflowers')
-# plt.plot(range(1, num_epochs+1), valid_accu_test['tulips'], label='tulips')
-# plt.xlabel('epoch')
-# plt.ylabel('accuracy')
-# plt.legend()
-# plt.show()
 
 #%%############
 # show result #
