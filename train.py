@@ -23,6 +23,8 @@ import matplotlib.pyplot as plt
 from torch import nn
 import torchvision.transforms.functional as F
 from tools.general import plot_utils, pil_utils
+from tensorboardX import SummaryWriter, writer
+
 
 
 PATH = './flower_mobilenet.pth'
@@ -91,11 +93,17 @@ criterion = losses.crossEntropyLoss()
 #%%###############################
 # define optimizer and scheduler #
 ##################################
-learning_rate = 0.05
-opt = optim.Adam(model.parameters(), lr=learning_rate)
+learning_rate = 0.01
+optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-lr_scheduler = ReduceLROnPlateau(opt, mode='min', factor=0.1, patience=10)
-epoch = 200
+lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=50)
+epoch = 300
+
+#%%############
+# tensorboard #
+###############
+writer = SummaryWriter()
+
 #%%#########
 # training #
 ############
@@ -121,59 +129,94 @@ def check_accuracy(model, history, data_loader):
         accuracy = 100 * float(correct_count) / total_pred[classname]
         history[classname].append(accuracy)
 
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
 
 
 
 def training(model, epoch):
     
-    loss_history = {'train': []}
-    train_accuracy_history = {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []}
+    loss_history = {'train': [], 'valid': []}
+    accuracy_history = {\
+        'train': {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []},\
+        'valid': {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []}\
+        }
     # valid_accuracy_history = {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []}
+    best_loss = float('inf')
+    val_loss = 0.0
+
 
     for epoch in range(epoch):
-        loss_sum = 0
-        loss_count = 0
-        for i, data in enumerate(train_loader, 0):
-            # print(loss_count)
+        print ("epoch: {}, lr: {}".format(epoch, get_lr(optimizer)))
+        running_loss = 0.0
+        len_data = len(train_loader.dataset)
+        
+        current_lr = get_lr(optimizer)
+
+        model.train()
+        for train_data in train_loader:
             
-            inputs, labels = data[0].to(device), data[1].to(device)
+            inputs, labels = train_data[0].to(device), train_data[1].to(device)
 
             optimizer.zero_grad()
 
             outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
+            train_loss = criterion(outputs, labels)
+            train_loss.backward()
             optimizer.step()
-
-            # print(loss.item())
-            loss_sum += loss.item()
-            loss_count += 1
-            
-            # if i==1:
-            #     pil_utils.show_images(inputs)
-            #     print(*labels, sep='\n')
-            #     print(*model(inputs))
-            # check_accuracy(model, inputs, labels, test_accuracy_history)
-            
-
-        loss_history['train'].append(loss_sum/loss_count)
-        print("epoch: {:2d}, {:.2f} ".format(epoch,  loss_sum/loss_count))
-        check_accuracy(model, train_accuracy_history, train_loader)
         
+            running_loss += train_loss.item()
+
+            
+
+        loss_history['train'].append(running_loss/len_data)
+
+        running_loss = 0.0
+        len_data = len(valid_loader.dataset)
+
+        model.eval()
+        with torch.no_grad():
+            for valid_data in valid_loader:
+                
+                inputs, labels = valid_data[0].to(device), valid_data[1].to(device)
+                output = model(inputs)
+                
+                val_loss = criterion(output, labels)
+                running_loss += val_loss.item()
+                
+
+        loss_history['valid'].append(running_loss/len_data)
+        
+
+        
+        if val_loss < best_loss:
+            best_loss = val_loss
+            best_model_wts = copy.deepcopy(model.state_dict())
+            torch.save(model.state_dict(), PATH)
+            print('Copied best model weights!')
+
+        lr_scheduler.step(val_loss)
+        if current_lr != get_lr(optimizer):
+            print('Loading best model weights!')
+            model.load_state_dict(best_model_wts)
+
+        check_accuracy(model, accuracy_history['train'], train_loader)
+        check_accuracy(model, accuracy_history['valid'], valid_loader)
+            
         if epoch % 10 == 0:
             plot_utils.show_loss(loss_history['train'], len(loss_history['train']))
-            plot_utils.show_accuracy(train_accuracy_history, len(loss_history['train']), True)
-        if epoch == 200:
-            pass
+            plot_utils.show_accuracy(accuracy_history['train'], len(accuracy_history['train']['daisy']), True)
+            plot_utils.show_accuracy(accuracy_history['valid'], len(accuracy_history['valid']['daisy']), False)
         
 
-        torch.save(model.state_dict(), PATH)
-    return model, loss_history, train_accuracy_history
+
+    return model, loss_history
 
 # %%
 
-_, loss_hist, train_accu_hist = training(model, epoch)
+_, loss_hist = training(model, epoch)
 
 #%%############
 # show result #
@@ -194,11 +237,6 @@ def imshow(img):
 # show images
 imshow(torchvision.utils.make_grid(images_and_labels[0]))
 print('GroundTruth: ', ' '.join('%5s' % classes[labels[j]] for j in range(8)))
-# print('[GroundTruth]')
-# for i in range(4):
-#     for j in range(8):
-#         print(classes[labels[i*4+j]][0:6], end='\t')
-#     print()
 
 
 
@@ -236,3 +274,5 @@ for classname, correct_count in correct_pred.items():
                                                    accuracy))
 # %%
 
+
+# %%
