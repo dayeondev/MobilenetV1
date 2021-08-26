@@ -97,7 +97,7 @@ loss_fn = nn.CrossEntropyLoss(reduction='sum')
 learning_rate = 0.01
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=50)
+lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
 epoch = 300
 
 #%%############
@@ -141,7 +141,7 @@ def get_accuracy(output, label):
     return corrects
 
 def calculate_batch(loss_fn, output, label, optimizer=None):
-    print(output)
+    # print(output)
     loss = loss_fn(output, label)
     accuracy = get_accuracy(output, label)
 
@@ -210,91 +210,93 @@ def train_valid(model, epochs):
             model.load_state_dict(best_model_wts)
 
         if epoch % 10 == 0:
-            plot_utils.show_loss(loss_history['train'], len(loss_history['train']))
-            plot_utils.show_accuracy(accuracy_history['train'], len(accuracy_history['train']['daisy']), True)
-            plot_utils.show_accuracy(accuracy_history['valid'], len(accuracy_history['valid']['daisy']), False)
+            print(loss_history)
+            plot_utils.show_plot(loss_history, len(loss_history['train']), True)
+            plot_utils.show_plot(accuracy_history, len(loss_history['train']), False)
+            # plot_utils.show_accuracy(accuracy_history['train'], len(accuracy_history['train']['daisy']), True)
+            # plot_utils.show_accuracy(accuracy_history['valid'], len(accuracy_history['valid']['daisy']), False)
         
     model.load_state_dict(best_model_weights)
 
     pass
 
-def training(model, epoch):
+# def training(model, epoch):
     
-    loss_history = {'train': [], 'valid': []}
-    accuracy_history = {\
-        'train': {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []},\
-        'valid': {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []}\
-        }
-    # valid_accuracy_history = {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []}
-    best_loss = float('inf')
-    val_loss = 0.0
+#     loss_history = {'train': [], 'valid': []}
+#     accuracy_history = {\
+#         'train': {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []},\
+#         'valid': {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []}\
+#         }
+#     # valid_accuracy_history = {'daisy': [], 'dandelion': [], 'roses': [], 'sunflowers': [],'tulips': []}
+#     best_loss = float('inf')
+#     val_loss = 0.0
 
 
-    for epoch in range(epoch):
-        print ("epoch: {}, lr: {}".format(epoch, get_lr(optimizer)))
-        running_loss = 0.0
-        len_data = len(train_loader.dataset)
+#     for epoch in range(epoch):
+#         print ("epoch: {}, lr: {}".format(epoch, get_lr(optimizer)))
+#         running_loss = 0.0
+#         len_data = len(train_loader.dataset)
         
-        current_lr = get_lr(optimizer)
+#         current_lr = get_lr(optimizer)
 
-        model.train()
-        for train_data in train_loader:
+#         model.train()
+#         for train_data in train_loader:
             
-            inputs, labels = train_data[0].to(device), train_data[1].to(device)
+#             inputs, labels = train_data[0].to(device), train_data[1].to(device)
 
-            optimizer.zero_grad()
+#             optimizer.zero_grad()
 
-            outputs = model(inputs)
-            train_loss = criterion(outputs, labels)
-            train_loss.backward()
-            optimizer.step()
+#             outputs = model(inputs)
+#             train_loss = criterion(outputs, labels)
+#             train_loss.backward()
+#             optimizer.step()
         
-            running_loss += train_loss.item()
+#             running_loss += train_loss.item()
 
             
 
-        loss_history['train'].append(running_loss/len_data)
+#         loss_history['train'].append(running_loss/len_data)
 
-        running_loss = 0.0
-        len_data = len(valid_loader.dataset)
+#         running_loss = 0.0
+#         len_data = len(valid_loader.dataset)
 
-        model.eval()
-        with torch.no_grad():
-            for valid_data in valid_loader:
+#         model.eval()
+#         with torch.no_grad():
+#             for valid_data in valid_loader:
                 
-                inputs, labels = valid_data[0].to(device), valid_data[1].to(device)
-                output = model(inputs)
+#                 inputs, labels = valid_data[0].to(device), valid_data[1].to(device)
+#                 output = model(inputs)
                 
-                val_loss = criterion(output, labels)
-                running_loss += val_loss.item()
+#                 val_loss = criterion(output, labels)
+#                 running_loss += val_loss.item()
                 
 
-        loss_history['valid'].append(running_loss/len_data)
+#         loss_history['valid'].append(running_loss/len_data)
         
 
         
-        if val_loss < best_loss:
-            best_loss = val_loss
-            best_model_wts = copy.deepcopy(model.state_dict())
-            torch.save(model.state_dict(), PATH)
-            print('Copied best model weights!')
+#         if val_loss < best_loss:
+#             best_loss = val_loss
+#             best_model_wts = copy.deepcopy(model.state_dict())
+#             torch.save(model.state_dict(), PATH)
+#             print('Copied best model weights!')
 
-        # lr_scheduler.step(val_loss)
-        # if current_lr != get_lr(optimizer):
-        #     print('Loading best model weights!')
-        #     model.load_state_dict(best_model_wts)
+#         # lr_scheduler.step(val_loss)
+#         # if current_lr != get_lr(optimizer):
+#         #     print('Loading best model weights!')
+#         #     model.load_state_dict(best_model_wts)
 
-        check_accuracy(model, accuracy_history['train'], train_loader)
-        check_accuracy(model, accuracy_history['valid'], valid_loader)
+#         check_accuracy(model, accuracy_history['train'], train_loader)
+#         check_accuracy(model, accuracy_history['valid'], valid_loader)
             
-        if epoch % 10 == 0:
-            plot_utils.show_loss(loss_history['train'], len(loss_history['train']))
-            plot_utils.show_accuracy(accuracy_history['train'], len(accuracy_history['train']['daisy']), True)
-            plot_utils.show_accuracy(accuracy_history['valid'], len(accuracy_history['valid']['daisy']), False)
+#         if epoch % 10 == 0:
+#             plot_utils.show_loss(loss_history['train'], len(loss_history['train']))
+#             plot_utils.show_accuracy(accuracy_history['train'], len(accuracy_history['train']['daisy']), True)
+#             plot_utils.show_accuracy(accuracy_history['valid'], len(accuracy_history['valid']['daisy']), False)
         
 
 
-    return model, loss_history
+#     return model, loss_history
 
 # %%
 
