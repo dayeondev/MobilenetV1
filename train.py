@@ -136,6 +136,26 @@ def get_lr(optimizer):
 
 
 
+
+def train_valid(model, epochs):
+
+    loss_history = {'train': [], 'valid': []}
+    accuracy_history = {'train': [], 'valid': []}
+    
+    best_loss = float('inf')
+    best_model_weights = copy.deepcopy(model.state_dict())
+    start_time = time.time()
+
+    for epoch in range(epochs):
+        current_lr = get_lr(optimizer)
+        
+        model.train()
+        train_loss, train_accuracy = calculate_loss_and_accuracy(model, loss_fn, train_loader, optimizer)
+        loss_history['']
+
+
+    pass
+
 def training(model, epoch):
     
     loss_history = {'train': [], 'valid': []}
@@ -197,10 +217,10 @@ def training(model, epoch):
             torch.save(model.state_dict(), PATH)
             print('Copied best model weights!')
 
-        lr_scheduler.step(val_loss)
-        if current_lr != get_lr(optimizer):
-            print('Loading best model weights!')
-            model.load_state_dict(best_model_wts)
+        # lr_scheduler.step(val_loss)
+        # if current_lr != get_lr(optimizer):
+        #     print('Loading best model weights!')
+        #     model.load_state_dict(best_model_wts)
 
         check_accuracy(model, accuracy_history['train'], train_loader)
         check_accuracy(model, accuracy_history['valid'], valid_loader)
@@ -257,7 +277,7 @@ total_pred = {classname: 0 for classname in classes}
 
 
 with torch.no_grad():
-    for data in valid_loader:
+    for data in train_loader:
         images, labels = data[0].to(device), data[1].to(device)
         outputs = model(images)
         _, predictions = torch.max(outputs, 1)
