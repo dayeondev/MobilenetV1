@@ -86,7 +86,8 @@ summary(model, (3, 224, 224), device=device.type)
 #%%############
 # define loss #
 ###############
-criterion = losses.crossEntropyLoss(reduction=sum)
+criterion = losses.crossEntropyLoss()
+loss_fn = nn.CrossEntropyLoss(reduction='sum')
 
 
 
@@ -134,27 +135,88 @@ def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
 
+def get_accuracy(output, label):
+    predict = output.argmax(1, keepdim=True)
+    corrects = predict.eq(label.view_as(predict)).sum().item()
+    return corrects
 
+def calculate_batch(loss_fn, output, label, optimizer=None):
+    print(output)
+    loss = loss_fn(output, label)
+    accuracy = get_accuracy(output, label)
 
+    if optimizer is not None:
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-# def train_valid(model, epochs):
+    return loss.item(), accuracy
 
-#     loss_history = {'train': [], 'valid': []}
-#     accuracy_history = {'train': [], 'valid': []}
+def calculate_loss_and_accuracy(model, loss_fn, data_loader, optimizer=None):
+    sum_losses = 0.0
+    sum_accuracy = 0.0
+    len_dataset = len(data_loader.dataset)
+
+    for input, label in data_loader:
+        input = input.to(device)
+        label = label.to(device)
+        output = model(input)
+
+        loss, accuracy = calculate_batch(loss_fn, output, label, optimizer)
+
+        sum_losses += loss
+
+        if accuracy is not None:
+            sum_accuracy += accuracy
     
-#     best_loss = float('inf')
-#     best_model_weights = copy.deepcopy(model.state_dict())
-#     start_time = time.time()
+    
+    return sum_losses/len_dataset, sum_accuracy/len_dataset
 
-#     for epoch in range(epochs):
-#         current_lr = get_lr(optimizer)
+
+def train_valid(model, epochs):
+
+    loss_history = {'train': [], 'valid': []}
+    accuracy_history = {'train': [], 'valid': []}
+    
+    best_loss = float('inf')
+    best_model_weights = copy.deepcopy(model.state_dict())
+    start_time = time.time()
+
+    for epoch in range(epochs):
+        print("epoch: {}, time: {}".format(epoch, (time.time() - start_time)/60))
+        current_lr = get_lr(optimizer)
         
-#         model.train()
-#         train_loss, train_accuracy = calculate_loss_and_accuracy(model, loss_fn, train_loader, optimizer)
-#         loss_history['']
+        model.train()
+        train_loss, train_accuracy = calculate_loss_and_accuracy(model, loss_fn, train_loader, optimizer)
+        loss_history['train'].append(train_loss)
+        accuracy_history['train'].append(train_accuracy)
 
+        model.eval()
+        with torch.no_grad():
+            valid_loss, valid_accuracy = calculate_loss_and_accuracy(model, loss_fn, valid_loader)
+        loss_history['valid'].append(valid_loss)
+        accuracy_history['valid'].append(valid_accuracy)
 
-#     pass
+                
+        if valid_loss < best_loss:
+            best_loss = valid_loss
+            best_model_wts = copy.deepcopy(model.state_dict())
+            torch.save(model.state_dict(), PATH)
+            print('Copied best model weights!')
+
+        lr_scheduler.step(valid_loss)
+        if current_lr != get_lr(optimizer):
+            print('Loading best model weights!')
+            model.load_state_dict(best_model_wts)
+
+        if epoch % 10 == 0:
+            plot_utils.show_loss(loss_history['train'], len(loss_history['train']))
+            plot_utils.show_accuracy(accuracy_history['train'], len(accuracy_history['train']['daisy']), True)
+            plot_utils.show_accuracy(accuracy_history['valid'], len(accuracy_history['valid']['daisy']), False)
+        
+    model.load_state_dict(best_model_weights)
+
+    pass
 
 def training(model, epoch):
     
@@ -236,7 +298,8 @@ def training(model, epoch):
 
 # %%
 
-_, loss_hist = training(model, epoch)
+train_valid(model, epoch)
+# _, loss_hist = training(model, epoch)
 
 #%%############
 # show result #
