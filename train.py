@@ -86,7 +86,7 @@ summary(model, (3, 224, 224), device=device.type)
 #%%############
 # define loss #
 ###############
-criterion = losses.crossEntropyLoss()
+criterion = losses.crossEntropyLoss(reduction=sum)
 
 
 
@@ -137,24 +137,24 @@ def get_lr(optimizer):
 
 
 
-def train_valid(model, epochs):
+# def train_valid(model, epochs):
 
-    loss_history = {'train': [], 'valid': []}
-    accuracy_history = {'train': [], 'valid': []}
+#     loss_history = {'train': [], 'valid': []}
+#     accuracy_history = {'train': [], 'valid': []}
     
-    best_loss = float('inf')
-    best_model_weights = copy.deepcopy(model.state_dict())
-    start_time = time.time()
+#     best_loss = float('inf')
+#     best_model_weights = copy.deepcopy(model.state_dict())
+#     start_time = time.time()
 
-    for epoch in range(epochs):
-        current_lr = get_lr(optimizer)
+#     for epoch in range(epochs):
+#         current_lr = get_lr(optimizer)
         
-        model.train()
-        train_loss, train_accuracy = calculate_loss_and_accuracy(model, loss_fn, train_loader, optimizer)
-        loss_history['']
+#         model.train()
+#         train_loss, train_accuracy = calculate_loss_and_accuracy(model, loss_fn, train_loader, optimizer)
+#         loss_history['']
 
 
-    pass
+#     pass
 
 def training(model, epoch):
     
