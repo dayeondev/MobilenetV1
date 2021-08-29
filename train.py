@@ -68,6 +68,13 @@ valid_loader = DataLoader(
     batch_size=batch_size,
     shuffle = False
 )
+# track=0
+# for data, label in train_loader:
+#     track+=+1
+#     print(track)
+#     print(label.shape)
+#     print(data.shape)
+# print('stop')
 
 
 #%%##############
