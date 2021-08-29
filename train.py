@@ -365,6 +365,16 @@ for classname, correct_count in correct_pred.items():
     print("Accuracy for class {:5s} is: {:.1f} %".format(classname,
                                                    accuracy))
 # %%
+with torch.no_grad():
+    sum_accuracy = 0
+    for data in train_loader:
+        images, labels = data[0].to(device), data[1].to(device)
+        outputs = model(images)
+        for predict, label in zip(outputs, labels):
+            accuracy = get_accuracy(predict, label)
+            if accuracy is not None:
+                sum_accuracy += accuracy
 
+    print(sum_accuracy / len(train_loader.dataset))
 
 # %%
