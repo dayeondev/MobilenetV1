@@ -101,10 +101,10 @@ loss_fn = nn.CrossEntropyLoss(reduction='sum')
 #%%###############################
 # define optimizer and scheduler #
 ##################################
-learning_rate = 0.01
+learning_rate = 0.001
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
+lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
 epoch = 300
 
 #%%############
@@ -185,7 +185,7 @@ def train_valid(model, epochs):
     loss_history = {'train': [], 'valid': []}
     accuracy_history = {'train': [], 'valid': []}
     
-    best_loss = float('inf')
+    best_accuracy = float('-inf')
     best_model_weights = copy.deepcopy(model.state_dict())
     start_time = time.time()
 
@@ -205,16 +205,16 @@ def train_valid(model, epochs):
         accuracy_history['valid'].append(valid_accuracy)
 
                 
-        if valid_loss < best_loss:
-            best_loss = valid_loss
-            best_model_wts = copy.deepcopy(model.state_dict())
+        if valid_accuracy < best_accuracy:
+            best_accuracy = valid_accuracy
+            # best_model_wts = copy.deepcopy(model.state_dict())
             torch.save(model.state_dict(), PATH)
             print('Copied best model weights!')
 
         lr_scheduler.step(valid_loss)
-        if current_lr != get_lr(optimizer):
-            print('Loading best model weights!')
-            model.load_state_dict(best_model_wts)
+        # if current_lr != get_lr(optimizer):
+        #     print('Loading best model weights!')
+        #     model.load_state_dict(best_model_wts)
 
         if epoch % 10 == 0:
             print(loss_history)
@@ -367,13 +367,12 @@ for classname, correct_count in correct_pred.items():
 # %%
 with torch.no_grad():
     sum_accuracy = 0
-    for data in train_loader:
+    for data in valid_loader:
         images, labels = data[0].to(device), data[1].to(device)
         outputs = model(images)
-        for predict, label in zip(outputs, labels):
-            accuracy = get_accuracy(predict, label)
-            if accuracy is not None:
-                sum_accuracy += accuracy
+        accuracy = get_accuracy(outputs, labels)
+        if accuracy is not None:
+            sum_accuracy += accuracy
 
     print(sum_accuracy / len(train_loader.dataset))
 
