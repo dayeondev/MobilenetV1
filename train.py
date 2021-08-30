@@ -103,7 +103,7 @@ loss_fn = nn.CrossEntropyLoss(reduction='sum')
 #%%###############################
 # define optimizer and scheduler #
 ##################################
-learning_rate = 0.001
+learning_rate = 0.1
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
