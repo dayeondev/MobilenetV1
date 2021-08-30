@@ -28,6 +28,8 @@ from tensorboardX import SummaryWriter, writer
 
 
 PATH = './flower_mobilenet.pth'
+random_seed = 1
+torch.manual_seed(random_seed)
 
 #%%##########
 # transform #
@@ -101,7 +103,7 @@ loss_fn = nn.CrossEntropyLoss(reduction='sum')
 #%%###############################
 # define optimizer and scheduler #
 ##################################
-learning_rate = 0.005
+learning_rate = 0.001
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
