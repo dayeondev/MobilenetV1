@@ -1,14 +1,16 @@
 import matplotlib.pyplot as plt
 
+
 def show_plot(hist, length, isTrain):
     
     if isTrain:
-        plt.title('Train Loss')
+        plt.title('Loss')
+        plt.ylabel('loss')      
     else:
-        plt.title('Valid Loss')
+        plt.title('Accuracy')
+        plt.ylabel('accuracy')      
     plt.plot(range(0, length), hist['train'], label='train')
     plt.plot(range(0, length), hist['valid'], label='valid')
-    plt.ylabel('loss avg')
     plt.xlabel('epoch')
     plt.legend()
     plt.show()

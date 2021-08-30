@@ -1,6 +1,8 @@
 from matplotlib import pyplot as plt
 import torchvision
 import torchvision.transforms.functional as F
+import os
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 def show(imgs):
     if not isinstance(imgs, list):

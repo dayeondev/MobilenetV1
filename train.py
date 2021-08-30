@@ -101,7 +101,7 @@ loss_fn = nn.CrossEntropyLoss(reduction='sum')
 #%%###############################
 # define optimizer and scheduler #
 ##################################
-learning_rate = 0.001
+learning_rate = 0.005
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 lr_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10)
@@ -374,6 +374,6 @@ with torch.no_grad():
         if accuracy is not None:
             sum_accuracy += accuracy
 
-    print(sum_accuracy / len(train_loader.dataset))
+    print(sum_accuracy / len(valid_loader.dataset))
 
 # %%
