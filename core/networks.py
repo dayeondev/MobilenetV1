@@ -6,13 +6,13 @@ class Depthwise(nn.Module):
 
         self.depthwise = nn.Sequential(
             nn.Conv2d(in_channels, in_channels, 3, stride=stride, padding=1, groups=in_channels, bias=False),
-            nn.BatchNorm2d(in_channels),
+            # nn.BatchNorm2d(in_channels),
             nn.ReLU6(),
         )
 
         self.pointwise = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, 1, stride=1, padding=0, bias=False),
-            nn.BatchNorm2d(out_channels),
+            # nn.BatchNorm2d(out_channels),
             nn.ReLU6()
         )
     
@@ -27,7 +27,7 @@ class BasicConv2d(nn.Module):
 
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size, **kwargs),
-            nn.BatchNorm2d(out_channels),
+            # nn.BatchNorm2d(out_channels),
             nn.ReLU()
         )
 
@@ -38,7 +38,7 @@ class BasicConv2d(nn.Module):
 
 
 class MobileNet(nn.Module):
-    def __init__(self, width_multiplier, num_classes=10, init_weights=True):
+    def __init__(self, width_multiplier, num_classes, init_weights=True):
         super().__init__()
         self.init_weights=init_weights
         alpha = width_multiplier
@@ -73,12 +73,9 @@ class MobileNet(nn.Module):
             Depthwise(int(1024*alpha), int(1024*alpha), stride=2)
         )
 
-        self.avg_pool = nn.AdaptiveAvgPool2d((1,1))
+        self.avg_pool = nn.AvgPool2d((1,1))
         self.linear = nn.Linear(int(1024*alpha), num_classes)
 
-        # weights initialization
-        if self.init_weights:
-            self._initialize_weights()
 
     def forward(self, x):
         x = self.conv1(x)
@@ -93,19 +90,5 @@ class MobileNet(nn.Module):
         x = self.linear(x)
         return x
 
-    # weights initialization function
-    def _initialize_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, 0, 0.01)
-                nn.init.constant_(m.bias, 0)
-
-def mobilenet(num_classes, alpha=0.75):
+def mobilenet(num_classes, alpha):
     return MobileNet(alpha, num_classes)

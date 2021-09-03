@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import torchvision
 import torchvision.transforms.functional as F
+import numpy as np
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
