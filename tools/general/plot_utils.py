@@ -9,6 +9,7 @@ def show_plot(hist, length, isTrain):
     else:
         plt.title('Accuracy')
         plt.ylabel('accuracy')      
+        plt.ylim(0, 1)
     plt.plot(range(0, length), hist['train'], label='train')
     plt.plot(range(0, length), hist['valid'], label='valid')
     plt.xlabel('epoch')
