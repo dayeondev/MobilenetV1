@@ -6,13 +6,13 @@ class Depthwise(nn.Module):
 
         self.depthwise = nn.Sequential(
             nn.Conv2d(in_channels, in_channels, 3, stride=stride, padding=1, groups=in_channels, bias=False),
-            # nn.BatchNorm2d(in_channels),
+            nn.BatchNorm2d(in_channels),
             nn.ReLU6(),
         )
 
         self.pointwise = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, 1, stride=1, padding=0, bias=False),
-            # nn.BatchNorm2d(out_channels),
+            nn.BatchNorm2d(out_channels),
             nn.ReLU6()
         )
     
@@ -27,7 +27,7 @@ class BasicConv2d(nn.Module):
 
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size, **kwargs),
-            # nn.BatchNorm2d(out_channels),
+            nn.BatchNorm2d(out_channels),
             nn.ReLU()
         )
 
