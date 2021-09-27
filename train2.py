@@ -44,6 +44,19 @@ if __name__ == '__main__':
     # for warmup
     parser.add('warmup_epoch', 0, float)
 
+    # for data argumentation
+    parser.add('train_argument', 'resize-random_crop-hflip-color_jitter-to_tensor-normalize', str)
+    parser.add('valid_argument', 'resize-to_tensor-normalize', str)
     
+    # for transfer learning
+    parser.add('pretrained_model_path', '', str)
+
+    # for debugging
+    parser.add('debug', False, bool)
+
+    args = parser.get_args()
+
+
+
 
     
