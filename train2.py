@@ -1,7 +1,9 @@
 import os
 import torch
 import numpy as np
-from tools.general import plot_utils, io_utils
+from tools.general import plot_utils, io_utils, log_utils
+from tools.ai import torch_utils
+import shutil
 
 if __name__ == '__main__':
     ###################################################################################
@@ -56,7 +58,26 @@ if __name__ == '__main__':
 
     args = parser.get_args()
 
+    
+    ###################################################################################
+    # 2. Make directories and pathes.
+    ###################################################################################
+    log_dir = './experiments/logs/'
+    model_dir = f'./experiments/models/{args.tag}/'
 
+    log_path = log_dir + f'{args.tag}.txt'      
 
+    if args.reset and os.path.isdir(log_dir):
+        os.remove(log_path)
+        shutil.rmtree(model_dir)
+    
+    log_dir = io_utils.create_directory(log_dir)
+    model_dir = io_utils.create_directory(model_dir)
+
+    ###################################################################################
+    # 3. Set the seed number and define log function. 
+    ###################################################################################
+    torch_utils.set_seed(args.seed)
+    log_func = lambda string='': log_utils.log_print(string, log_path)
 
     
